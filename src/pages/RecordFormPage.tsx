@@ -233,7 +233,7 @@ export function RecordFormPage() {
     if (!newStudentName.trim() || !newStudentGrade.trim()) return;
     const { data, error: e } = await supabase
       .from('students')
-      .insert({ name: newStudentName.trim(), grade: newStudentGrade.trim() })
+      .insert({ name: newStudentName.trim(), grade: newStudentGrade.trim(), user_id: user?.id })
       .select().single();
     if (e) { setError(e.message); return; }
     queryClient.invalidateQueries({ queryKey: ['students'] });

@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 import type { Student, StudentInput } from '../types/database';
 import { Plus, Pencil, Trash2, Search, X, User } from 'lucide-react';
 
 export function StudentManagementPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuthStore();
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
@@ -165,7 +167,7 @@ function StudentModal({ student, onClose, onSaved }: { student: Student | null; 
     } else {
       const { error: e } = await supabase
         .from('students')
-        .insert({ ...form, subject: form.subject || null, notes: form.notes || null });
+        .insert({ ...form, subject: form.subject || null, notes: form.notes || null, user_id: user?.id });
       if (e) { setError(e.message); setSaving(false); return; }
     }
     onSaved();
