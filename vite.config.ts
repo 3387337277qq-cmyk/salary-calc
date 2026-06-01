@@ -4,7 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/salary-calc/',
+  // base 仅在GitHub Pages时需要，本地开发注释掉
+  // base: '/salary-calc/',
   plugins: [
     react(),
     tailwindcss(),
