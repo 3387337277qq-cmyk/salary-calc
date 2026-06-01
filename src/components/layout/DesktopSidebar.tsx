@@ -1,7 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
   BookOpen,
-  Camera,
   BarChart3,
   Users,
   DollarSign,
@@ -28,7 +27,6 @@ export function DesktopSidebar({ userEmail, onSignOut }: Props) {
       {/* 导航菜单 */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         <NavItem to="/records" icon={BookOpen} label="课程记录" />
-        <NavItem to="/ocr" icon={Camera} label="拍照识别" />
         <NavItem to="/summary" icon={BarChart3} label="月度汇总" />
         <NavItem to="/students" icon={Users} label="学生管理" />
         <NavItem to="/pricing" icon={DollarSign} label="定价设置" />

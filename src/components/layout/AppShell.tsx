@@ -3,7 +3,6 @@ import { MobileBottomTabs } from './MobileBottomTabs';
 import { DesktopSidebar } from './DesktopSidebar';
 import { RecordListPage } from '../../pages/RecordListPage';
 import { RecordFormPage } from '../../pages/RecordFormPage';
-import { OcrPage } from '../../pages/OcrPage';
 import { StudentManagementPage } from '../../pages/StudentManagementPage';
 import { SummaryPage } from '../../pages/SummaryPage';
 import { PricingPage } from '../../pages/PricingPage';
@@ -31,7 +30,6 @@ export function AppShell() {
             <Route path="/records" element={<RecordListPage />} />
             <Route path="/records/new" element={<RecordFormPage />} />
             <Route path="/records/:id/edit" element={<RecordFormPage />} />
-            <Route path="/ocr" element={<OcrPage />} />
             <Route path="/students" element={<StudentManagementPage />} />
             <Route path="/summary" element={<SummaryPage />} />
             <Route path="/pricing" element={<PricingPage />} />

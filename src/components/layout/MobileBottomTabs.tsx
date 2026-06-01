@@ -1,9 +1,8 @@
 import { NavLink } from 'react-router-dom';
-import { BookOpen, Camera, BarChart3, Users } from 'lucide-react';
+import { BookOpen, BarChart3, Users } from 'lucide-react';
 
 const tabs = [
   { to: '/records', icon: BookOpen, label: '课程记录' },
-  { to: '/ocr', icon: Camera, label: '拍照识别' },
   { to: '/summary', icon: BarChart3, label: '月度汇总' },
   { to: '/students', icon: Users, label: '学生管理' },
 ];
