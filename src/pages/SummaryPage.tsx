@@ -51,8 +51,10 @@ export function SummaryPage() {
 
     // 按类型汇总
     const byType = new Map<ClassType, { hours: number; salary: number; count: number }>();
-    // 按学生汇总
-    const byStudent = new Map<string, { name: string; grade: string; hours: number; salary: number; count: number }>();
+    // 按学生汇总（班课合并）
+    const byStudent = new Map<string, { names: string[]; grade: string; hours: number; salary: number; count: number }>();
+    // 用 sessionKey 去重：同日期+同类型+同组学生
+    const sessionSeen = new Set<string>();
 
     // 找匹配的阶梯
     const sortedTiers = [...tiers].sort((a, b) => a.sort_order - b.sort_order);
@@ -66,24 +68,59 @@ export function SummaryPage() {
       const salary = record.salary ?? 0;
       totalSalary += salary;
 
-      // 按类型
+      // 按类型（按记录数统计，不变）
       const typeEntry = byType.get(record.class_type) ?? { hours: 0, salary: 0, count: 0 };
       typeEntry.hours += record.hours;
       typeEntry.salary += salary;
       typeEntry.count += 1;
       byType.set(record.class_type, typeEntry);
 
-      // 按学生
-      const key = record.student_id;
-      const studentEntry = byStudent.get(key) ?? {
-        name: record.student?.name ?? '未知',
-        grade: record.student?.grade ?? '',
+      // 按学生——合并班课
+      const remarks = record.remarks || '';
+      const isGroup = remarks.includes('同堂:');
+      let allNames: string[];
+      if (isGroup) {
+        const mainName = record.student?.name ?? '未知';
+        const others = remarks.replace('同堂: ', '').replace('同堂:', '').split('、').map(s => s.trim()).filter(Boolean);
+        allNames = [mainName, ...others].sort();
+      } else {
+        allNames = [record.student?.name ?? '未知'];
+      }
+      const sessionKey = record.class_date + '|' + allNames.join(',');
+
+      // 同一次班课只统计一次
+      if (sessionSeen.has(sessionKey)) continue;
+      sessionSeen.add(sessionKey);
+
+      // 班课取整组总工资（把同堂的各条记录工资加总）
+      let sessionSalary = salary;
+      let sessionHours = record.hours;
+      if (isGroup) {
+        for (const r2 of records) {
+          if (r2 === record) continue;
+          const r2remarks = r2.remarks || '';
+          if (!r2remarks.includes('同堂:')) continue;
+          const r2main = r2.student?.name ?? '';
+          const r2others = r2remarks.replace('同堂: ', '').replace('同堂:', '').split('、').map(s => s.trim()).filter(Boolean);
+          const r2all = [r2main, ...r2others].sort();
+          if (r2all.join(',') === allNames.join(',') && r2.class_date === record.class_date) {
+            sessionSalary += (r2.salary ?? 0);
+            // 工时只取一份（同堂各条都是同一节课）
+          }
+        }
+      }
+
+      const displayName = allNames.join('、');
+      const firstStudent = record.student;
+      const entry = byStudent.get(displayName) ?? {
+        names: allNames,
+        grade: firstStudent?.grade ?? '',
         hours: 0, salary: 0, count: 0,
       };
-      studentEntry.hours += record.hours;
-      studentEntry.salary += salary;
-      studentEntry.count += 1;
-      byStudent.set(key, studentEntry);
+      entry.hours += sessionHours;
+      entry.salary += sessionSalary;
+      entry.count += 1;
+      byStudent.set(displayName, entry);
     }
 
     return {
@@ -92,7 +129,7 @@ export function SummaryPage() {
       recordCount: records.length,
       tierName: matchedTier?.name ?? '未匹配',
       byType: [...byType.entries()].map(([k, v]) => ({ ...v, classType: k })),
-      byStudent: [...byStudent.entries()].map(([k, v]) => ({ ...v, studentId: k })),
+      byStudent: [...byStudent.entries()].map(([k, v]) => ({ ...v, studentId: k, name: v.names.join('、') })),
     };
   }, [records, tiers]);
 

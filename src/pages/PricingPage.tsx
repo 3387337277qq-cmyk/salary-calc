@@ -19,6 +19,7 @@ export function PricingPage() {
       const { data: rateData } = await supabase.from('pricing_rates').select('*');
       return (tierData ?? []).map(t => ({ ...t, rates: (rateData ?? []).filter(r => r.tier_id === t.id) })) as PricingTier[];
     },
+    staleTime: 0,
   });
 
   return (
