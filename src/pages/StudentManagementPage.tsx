@@ -167,7 +167,7 @@ function StudentModal({ student, onClose, onSaved }: { student: Student | null; 
     } else {
       const { error: e } = await supabase
         .from('students')
-        .insert({ ...form, subject: form.subject || null, notes: form.notes || null, user_id: user?.id });
+        .insert({ ...form, subject: form.subject || null, notes: form.notes || null, ...(user?.id ? { user_id: user.id } : {}) });
       if (e) { setError(e.message); setSaving(false); return; }
     }
     onSaved();
