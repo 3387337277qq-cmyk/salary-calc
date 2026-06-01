@@ -15,12 +15,9 @@ export function PricingPage() {
   const { data: tiers = [], isLoading } = useQuery({
     queryKey: ['pricing'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('pricing_tiers')
-        .select('*, pricing_rates(*)')
-        .order('sort_order');
-      if (error) throw error;
-      return data as PricingTier[];
+      const { data: tierData } = await supabase.from('pricing_tiers').select('*').order('sort_order');
+      const { data: rateData } = await supabase.from('pricing_rates').select('*');
+      return (tierData ?? []).map(t => ({ ...t, rates: (rateData ?? []).filter(r => r.tier_id === t.id) })) as PricingTier[];
     },
   });
 
