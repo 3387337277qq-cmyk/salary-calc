@@ -1,0 +1,259 @@
+import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '../lib/supabase';
+import type { ClassRecord, ClassType, PricingTier } from '../types/database';
+import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { Calendar, Clock, DollarSign, TrendingUp, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+
+type ViewMode = 'monthly' | 'range';
+
+export function SummaryPage() {
+  const [mode, setMode] = useState<ViewMode>('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [dateRange, setDateRange] = useState({
+    start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+    end: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+  });
+
+  const queryStart = mode === 'monthly'
+    ? format(startOfMonth(selectedMonth), 'yyyy-MM-dd')
+    : dateRange.start;
+  const queryEnd = mode === 'monthly'
+    ? format(endOfMonth(selectedMonth), 'yyyy-MM-dd')
+    : dateRange.end;
+
+  const { data: records = [], isLoading } = useQuery({
+    queryKey: ['summary-records', queryStart, queryEnd],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('class_records')
+        .select('*, student:students(id, name, grade)')
+        .gte('class_date', queryStart)
+        .lte('class_date', queryEnd)
+        .order('class_date');
+      return (data ?? []) as ClassRecord[];
+    },
+  });
+
+  const { data: tiers = [] } = useQuery({
+    queryKey: ['pricing'],
+    queryFn: async () => {
+      const { data: tierData } = await supabase.from('pricing_tiers').select('*').order('sort_order');
+      const { data: rateData } = await supabase.from('pricing_rates').select('*');
+      return (tierData ?? []).map(t => ({ ...t, rates: (rateData ?? []).filter(r => r.tier_id === t.id) })) as PricingTier[];
+    },
+    staleTime: 0,
+  });
+
+  // 统计汇总
+  const summary = useMemo(() => {
+    const totalHours = records.reduce((s, r) => s + r.hours, 0);
+
+    // 按类型汇总
+    const byType = new Map<ClassType, { hours: number; salary: number; count: number }>();
+    // 按学生汇总
+    const byStudent = new Map<string, { name: string; grade: string; hours: number; salary: number; count: number }>();
+
+    // 找匹配的阶梯
+    const sortedTiers = [...tiers].sort((a, b) => a.sort_order - b.sort_order);
+    const matchedTier = sortedTiers.find(
+      (t) => totalHours >= t.min_hours && totalHours <= t.max_hours,
+    );
+
+    let totalSalary = 0;
+
+    for (const record of records) {
+      const salary = record.salary ?? 0;
+      totalSalary += salary;
+
+      // 按类型
+      const typeEntry = byType.get(record.class_type) ?? { hours: 0, salary: 0, count: 0 };
+      typeEntry.hours += record.hours;
+      typeEntry.salary += salary;
+      typeEntry.count += 1;
+      byType.set(record.class_type, typeEntry);
+
+      // 按学生
+      const key = record.student_id;
+      const studentEntry = byStudent.get(key) ?? {
+        name: record.student?.name ?? '未知',
+        grade: record.student?.grade ?? '',
+        hours: 0, salary: 0, count: 0,
+      };
+      studentEntry.hours += record.hours;
+      studentEntry.salary += salary;
+      studentEntry.count += 1;
+      byStudent.set(key, studentEntry);
+    }
+
+    return {
+      totalHours,
+      totalSalary,
+      recordCount: records.length,
+      tierName: matchedTier?.name ?? '未匹配',
+      byType: [...byType.entries()].map(([k, v]) => ({ ...v, classType: k })),
+      byStudent: [...byStudent.entries()].map(([k, v]) => ({ ...v, studentId: k })),
+    };
+  }, [records, tiers]);
+
+  const goPrevMonth = () => setSelectedMonth(subMonths(selectedMonth, 1));
+  const goNextMonth = () => {
+    const next = new Date(selectedMonth);
+    next.setMonth(next.getMonth() + 1);
+    if (next <= new Date()) setSelectedMonth(next);
+  };
+
+  const classTypeColors: Partial<Record<ClassType, string>> = {
+    '1v1': 'bg-mint-100 text-mint-700',
+    '1v2': 'bg-blue-100 text-blue-700',
+    '1v3': 'bg-orange-100 text-orange-700',
+    '1v6': 'bg-purple-100 text-purple-700',
+  };
+
+  return (
+    <div className="animate-fade-in">
+      <h1 className="text-xl font-bold text-gray-800 mb-4">工资汇总</h1>
+
+      {/* 模式切换 */}
+      <div className="flex bg-white rounded-xl border border-mint-100 p-1 mb-4">
+        <button
+          onClick={() => setMode('monthly')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+            mode === 'monthly' ? 'bg-mint-500 text-white shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          月度汇总
+        </button>
+        <button
+          onClick={() => setMode('range')}
+          className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+            mode === 'range' ? 'bg-mint-500 text-white shadow-sm' : 'text-gray-500'
+          }`}
+        >
+          时间段查询
+        </button>
+      </div>
+
+      {/* 月份选择 / 日期范围 */}
+      {mode === 'monthly' ? (
+        <div className="flex items-center justify-center gap-3 mb-4">
+          <button onClick={goPrevMonth} className="p-2 rounded-lg hover:bg-white text-gray-500 transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <h2 className="text-lg font-semibold text-gray-700">{format(selectedMonth, 'yyyy年M月')}</h2>
+          <button onClick={goNextMonth} className="p-2 rounded-lg hover:bg-white text-gray-500 transition-colors">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2 mb-4">
+          <div className="flex-1">
+            <label className="text-xs text-gray-400 mb-1 block">开始日期</label>
+            <input type="date" value={dateRange.start} onChange={(e) => setDateRange({ ...dateRange, start: e.target.value })}
+              className="w-full px-3 py-2 border border-mint-200 rounded-xl text-sm" />
+          </div>
+          <div className="flex-1">
+            <label className="text-xs text-gray-400 mb-1 block">结束日期</label>
+            <input type="date" value={dateRange.end} onChange={(e) => setDateRange({ ...dateRange, end: e.target.value })}
+              className="w-full px-3 py-2 border border-mint-200 rounded-xl text-sm" />
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-3">
+          <div className="h-24 bg-white rounded-xl animate-pulse" />
+          <div className="h-32 bg-white rounded-xl animate-pulse" />
+        </div>
+      ) : (
+        <>
+          {/* 概要卡片 */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="bg-white rounded-2xl border border-mint-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-mint-500" />
+                <span className="text-xs text-gray-400">总课时</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{summary.totalHours.toFixed(1)}<span className="text-sm font-normal text-gray-400">h</span></p>
+            </div>
+            <div className="bg-white rounded-2xl border border-mint-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign className="w-5 h-5 text-orange-500" />
+                <span className="text-xs text-gray-400">总工资</span>
+              </div>
+              <p className="text-2xl font-bold text-orange-500">¥{summary.totalSalary.toFixed(0)}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-mint-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp className="w-5 h-5 text-mint-500" />
+                <span className="text-xs text-gray-400">所处阶梯</span>
+              </div>
+              <p className="text-lg font-bold text-mint-700">{summary.tierName}</p>
+            </div>
+            <div className="bg-white rounded-2xl border border-mint-100 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-5 h-5 text-mint-500" />
+                <span className="text-xs text-gray-400">课程次数</span>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{summary.recordCount}<span className="text-sm font-normal text-gray-400">次</span></p>
+            </div>
+          </div>
+
+          {/* 按类型分类 */}
+          {summary.byType.length > 0 && (
+            <div className="bg-white rounded-2xl border border-mint-100 p-4 mb-3">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">按上课类型统计</h3>
+              <div className="space-y-2">
+                {summary.byType.map((item) => (
+                  <div key={item.classType} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${classTypeColors[item.classType]}`}>
+                        {item.classType}
+                      </span>
+                      <span className="text-xs text-gray-400">{item.count}次</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-gray-700">{item.hours.toFixed(1)}h</p>
+                      <p className="text-xs text-gray-400">¥{item.salary.toFixed(0)}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 按学生分类 */}
+          {summary.byStudent.length > 0 && (
+            <div className="bg-white rounded-2xl border border-mint-100 p-4 mb-3">
+              <h3 className="text-sm font-medium text-gray-500 mb-3">按学生统计</h3>
+              <div className="space-y-2">
+                {summary.byStudent
+                  .sort((a, b) => b.salary - a.salary)
+                  .map((item) => (
+                    <div key={item.studentId} className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">{item.name}</p>
+                        <p className="text-xs text-gray-400">{item.grade} · {item.count}次课</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-gray-700">{item.hours.toFixed(1)}h</p>
+                        <p className="text-xs text-orange-500 font-medium">¥{item.salary.toFixed(0)}</p>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* 空状态 */}
+          {summary.recordCount === 0 && (
+            <div className="text-center py-12 bg-white rounded-2xl border border-mint-100">
+              <Calendar className="w-12 h-12 text-mint-200 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">该时间段暂无记录</p>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
