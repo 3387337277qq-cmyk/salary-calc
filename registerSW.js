@@ -1,1 +1,0 @@
-if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/salary-calc/sw.js', { scope: '/salary-calc/' })})}
