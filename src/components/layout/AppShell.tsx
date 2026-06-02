@@ -26,6 +26,7 @@ export function AppShell() {
           </button>
         </div>
         <div className="max-w-3xl mx-auto px-4 py-4 lg:py-6">
+          <div className="text-center text-xs text-gray-300 mb-1">v20260603</div>
           <Routes>
             <Route path="/records" element={<RecordListPage />} />
             <Route path="/records/new" element={<RecordFormPage />} />
