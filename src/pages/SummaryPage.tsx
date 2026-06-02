@@ -50,8 +50,8 @@ export function SummaryPage() {
   const summary = useMemo(() => {
     const totalHours = records.reduce((s, r) => s + r.hours, 0);
 
-    // 按类型汇总
-    const byType = new Map<ClassType, { hours: number; salary: number; count: number }>();
+    // 按类型汇总（特殊规则分开）
+    const byType = new Map<string, { hours: number; salary: number; count: number; label: string }>();
     // 按学生汇总（班课合并）
     const byStudent = new Map<string, { names: string[]; grade: string; hours: number; salary: number; count: number }>();
     // 用 sessionKey 去重：同日期+同类型+同组学生
@@ -69,12 +69,22 @@ export function SummaryPage() {
       const salary = record.salary ?? 0;
       totalSalary += salary;
 
-      // 按类型（按记录数统计，不变）
-      const typeEntry = byType.get(record.class_type) ?? { hours: 0, salary: 0, count: 0 };
+      // 按类型（特殊规则分开显示）
+      let typeKey = record.class_type;
+      let label = record.class_type;
+      if (record.is_custom && record.custom_rule) {
+        if (record.custom_rule.includes('1v1+1v4')) label = '1v3 (公式 1v1+1v4)';
+        else if (record.custom_rule.includes('人数×3')) label = record.class_type + ' (人数×3)';
+        else if (record.custom_rule.includes('晚辅导')) label = '晚辅导';
+        else if (record.custom_rule.includes('指定1v2')) label = '1v2 (指定)';
+        else label = record.class_type + ' (自定义)';
+        typeKey = label;
+      }
+      const typeEntry = byType.get(typeKey) ?? { hours: 0, salary: 0, count: 0, label };
       typeEntry.hours += record.hours;
       typeEntry.salary += salary;
       typeEntry.count += 1;
-      byType.set(record.class_type, typeEntry);
+      byType.set(typeKey, typeEntry);
 
       // 按学生——合并班课
       const remarks = record.remarks || '';
@@ -129,7 +139,7 @@ export function SummaryPage() {
       totalSalary,
       recordCount: records.length,
       tierName: matchedTier?.name ?? '未匹配',
-      byType: [...byType.entries()].map(([k, v]) => ({ ...v, classType: k })),
+      byType: [...byType.entries()].map(([k, v]) => ({ ...v, classType: k as ClassType })),
       byStudent: [...byStudent.entries()].map(([k, v]) => ({ ...v, studentId: k, name: v.names.join('、') })),
     };
   }, [records, tiers]);
@@ -245,8 +255,8 @@ export function SummaryPage() {
                 {summary.byType.map((item) => (
                   <div key={item.classType} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${classTypeColors[item.classType]}`}>
-                        {item.classType}
+                      <span className={`px-2 py-0.5 rounded-md text-xs font-medium ${item.label.includes('自定义')||item.label.includes('公式')||item.label.includes('人数')||item.label.includes('指定')||item.label.includes('晚辅导') ? 'bg-amber-100 text-amber-700' : (classTypeColors[item.classType] || 'bg-mint-100 text-mint-700')}`}>
+                        {item.label || item.classType}
                       </span>
                       <span className="text-xs text-gray-400">{item.count}次</span>
                     </div>
