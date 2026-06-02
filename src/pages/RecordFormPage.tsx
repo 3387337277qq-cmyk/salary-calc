@@ -350,6 +350,7 @@ export function RecordFormPage() {
           custom_price: detected.customUnitPrice || (isCustom ? (parseFloat(customPrice) || null) : null),
           remarks: finalRemarks || null,
           source: 'manual',
+          grade_snapshot: primaryGrade,
         });
       }
       queryClient.invalidateQueries({ queryKey: ['records'] });
