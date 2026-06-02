@@ -94,27 +94,27 @@ export function PricingPage() {
 
                 {/* 展开后的价格表格 */}
                 {isExpanded && (
-                  <div className="px-2 pb-4 border-t border-mint-50">
-                    <p className="text-xs text-gray-400 mt-2 mb-1">← 左右滑动查看更多班型 →</p>
-                    <div className="overflow-x-auto -mx-2 px-2" style={{ WebkitOverflowScrolling: 'touch' }}>
-                      <table className="text-xs border-collapse" style={{ minWidth: '800px' }}>
+                  <div className="border-t border-mint-50">
+                    <p className="text-xs text-gray-400 py-2 px-3">↔ 左右滑看班型 · ↕ 上下滑看年级</p>
+                    <div className="overflow-auto max-h-80" style={{ WebkitOverflowScrolling: 'touch' }}>
+                      <table className="text-xs border-collapse w-full" style={{ minWidth: '700px' }}>
                         <thead>
-                          <tr className="border-b border-mint-100">
-                            <th className="text-left py-2 text-gray-400 font-medium sticky left-0 bg-white z-10 min-w-[60px]">年级</th>
+                          <tr className="border-b border-mint-100 bg-mint-50/50">
+                            <th className="text-left py-2 text-gray-500 font-medium sticky left-0 bg-mint-50/50 z-10 pl-3 min-w-[56px]">年级</th>
                             {CLASS_TYPES.map(ct => (
-                              <th key={ct} className="text-right py-2 text-gray-400 font-medium px-1.5 min-w-[36px]">{ct.replace('1v','')}</th>
+                              <th key={ct} className="text-center py-2 text-gray-500 font-medium px-1 min-w-[38px]">{ct}</th>
                             ))}
                           </tr>
                         </thead>
                         <tbody>
                           {grades.map((grade) => (
-                            <tr key={grade} className="border-b border-mint-50">
-                              <td className="py-2 text-gray-700 font-medium sticky left-0 bg-white z-10 text-xs">{grade}</td>
+                            <tr key={grade} className="border-b border-mint-50 hover:bg-mint-50/30">
+                              <td className="py-2 text-gray-700 font-medium sticky left-0 bg-white z-10 pl-3 text-xs">{grade}</td>
                               {CLASS_TYPES.map(ct => {
                                 const rate = rates.find(r => r.grade === grade && r.class_type === ct);
                                 return (
-                                  <td key={ct} className="text-right py-2 px-1.5 text-gray-600 text-xs">
-                                    {rate ? `¥${rate.price_per_hour}` : <span className="text-gray-300">—</span>}
+                                  <td key={ct} className="text-center py-2 px-1 text-gray-600 text-xs">
+                                    {rate ? <span className="font-medium">¥{rate.price_per_hour}</span> : <span className="text-gray-300">—</span>}
                                   </td>
                                 );
                               })}
