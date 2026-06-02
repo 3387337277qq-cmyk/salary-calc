@@ -16,8 +16,9 @@ export function PricingPage() {
     queryKey: ['pricing'],
     queryFn: async () => {
       const { data: tierData } = await supabase.from('pricing_tiers').select('*').order('sort_order');
-      const { data: rateData } = await supabase.from('pricing_rates').select('*');
-      return (tierData ?? []).map(t => ({ ...t, rates: (rateData ?? []).filter(r => r.tier_id === t.id) })) as PricingTier[];
+      let allRates = [], from = 0;
+      while (true) { const { data } = await supabase.from('pricing_rates').select('*').range(from, from+999); if (!data||data.length===0) break; allRates=allRates.concat(data); if (data.length<1000) break; from+=1000; }
+      return (tierData ?? []).map(t => ({ ...t, rates: allRates.filter(r => r.tier_id === t.id) })) as PricingTier[];
     },
     staleTime: 0,
   });
@@ -54,7 +55,7 @@ export function PricingPage() {
             const isExpanded = expandedTier === tier.id;
             const rates = tier.rates ?? [];
             // 获取所有不同的年级
-            const gradeOrder = ['一年级','二年级','三年级','四年级','五年级','六年级','初一','初二','初三','高一','高二','高三'];
+            const gradeOrder = ['一年级至五年级','六年级至初二','初三','高一至高二','高三'];
             const grades = [...new Set(rates.map(r => r.grade))].sort((a, b) => gradeOrder.indexOf(a) - gradeOrder.indexOf(b));
 
             return (
@@ -98,11 +99,11 @@ export function PricingPage() {
                     <p className="text-xs text-gray-400 py-2 px-3">↔ 左右滑看班型 · ↕ 上下滑看年级</p>
                     <div className="overflow-auto max-h-80" style={{ WebkitOverflowScrolling: 'touch' }}>
                       <table className="text-xs border-collapse w-full" style={{ minWidth: '700px' }}>
-                        <thead>
-                          <tr className="border-b border-mint-100 bg-mint-50/50">
-                            <th className="text-left py-2 text-gray-500 font-medium sticky left-0 bg-mint-50/50 z-10 pl-3 min-w-[56px]">年级</th>
+                        <thead className="sticky top-0 z-20">
+                          <tr className="border-b border-mint-100 bg-mint-100">
+                            <th className="text-left py-2 text-gray-600 font-medium sticky left-0 bg-mint-100 z-30 pl-3 min-w-[56px]">年级</th>
                             {CLASS_TYPES.map(ct => (
-                              <th key={ct} className="text-center py-2 text-gray-500 font-medium px-1 min-w-[38px]">{ct}</th>
+                              <th key={ct} className="text-center py-2 text-gray-600 font-medium px-1 min-w-[38px] bg-mint-100">{ct}</th>
                             ))}
                           </tr>
                         </thead>
@@ -244,7 +245,7 @@ function TierModal({ tier, onClose, onSaved }: { tier: PricingTier | null; onClo
     setSaving(false);
   };
 
-  const allGrades = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三'];
+  const allGrades = ['一年级至五年级', '六年级至初二', '初三', '高一至高二', '高三'];
 
   const toggleGrade = (g: string) => {
     if (grades.includes(g)) {

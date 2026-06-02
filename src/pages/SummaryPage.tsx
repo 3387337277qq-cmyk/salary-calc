@@ -39,8 +39,9 @@ export function SummaryPage() {
     queryKey: ['pricing'],
     queryFn: async () => {
       const { data: tierData } = await supabase.from('pricing_tiers').select('*').order('sort_order');
-      const { data: rateData } = await supabase.from('pricing_rates').select('*');
-      return (tierData ?? []).map(t => ({ ...t, rates: (rateData ?? []).filter(r => r.tier_id === t.id) })) as PricingTier[];
+      let allRates = [], from = 0;
+      while (true) { const { data } = await supabase.from('pricing_rates').select('*').range(from, from+999); if (!data||data.length===0) break; allRates=allRates.concat(data); if (data.length<1000) break; from+=1000; }
+      return (tierData ?? []).map(t => ({ ...t, rates: allRates.filter(r => r.tier_id === t.id) })) as PricingTier[];
     },
     staleTime: 0,
   });
