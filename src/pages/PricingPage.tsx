@@ -54,7 +54,8 @@ export function PricingPage() {
             const isExpanded = expandedTier === tier.id;
             const rates = tier.rates ?? [];
             // 获取所有不同的年级
-            const grades = [...new Set(rates.map(r => r.grade))].sort();
+            const gradeOrder = ['一年级','二年级','三年级','四年级','五年级','六年级','初一','初二','初三','高一','高二','高三'];
+            const grades = [...new Set(rates.map(r => r.grade))].sort((a, b) => gradeOrder.indexOf(a) - gradeOrder.indexOf(b));
 
             return (
               <div key={tier.id} className="bg-white rounded-xl border border-mint-100 overflow-hidden">
