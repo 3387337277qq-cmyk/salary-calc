@@ -440,8 +440,11 @@ export function RecordFormPage() {
                 <select value={newStudentGrade} onChange={e => setNewStudentGrade(e.target.value)}
                   className="flex-1 px-3 py-2 border border-mint-200 rounded-lg text-sm bg-white">
                   <option value="">选年级</option>
+                  <option value="一年级至五年级">一年级至五年级</option>
+                  <option value="六年级至初二">六年级至初二</option>
                   <option value="初三">初三</option>
-                  <option value="小六至初二">6-8年级</option>
+                  <option value="高一至高二">高一至高二</option>
+                  <option value="高三">高三</option>
                 </select>
                 <button onClick={handleAddStudent}
                   className="px-4 py-2 bg-mint-500 text-white rounded-lg text-sm font-medium whitespace-nowrap">

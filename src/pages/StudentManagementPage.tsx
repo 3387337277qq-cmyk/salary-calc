@@ -173,7 +173,7 @@ function StudentModal({ student, onClose, onSaved }: { student: Student | null; 
     onSaved();
   };
 
-  const grades = ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三'];
+  const grades = ['一年级至五年级', '六年级至初二', '初三', '高一至高二', '高三'];
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center" onClick={onClose}>

@@ -168,7 +168,7 @@ function TierModal({ tier, onClose, onSaved }: { tier: PricingTier | null; onClo
     if (tier?.rates && tier.rates.length > 0) {
       return [...new Set(tier.rates.map(r => r.grade))].sort();
     }
-    return ['一年级', '二年级', '三年级', '四年级', '五年级', '六年级', '初一', '初二', '初三', '高一', '高二', '高三'];
+    return ['一年级至五年级', '六年级至初二', '初三', '高一至高二', '高三'];
   });
   const [rates, setRates] = useState<Record<string, Record<string, number>>>(() => {
     const map: Record<string, Record<string, number>> = {};
